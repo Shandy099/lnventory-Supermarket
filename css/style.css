@@ -404,3 +404,42 @@ body {
   .module-tabs { overflow-x: auto; flex-wrap: nowrap; }
   .module-tab { padding-left: .6rem; padding-right: .6rem; }
 }
+
+/* Palet Warna Kustom Supermarket */
+:root {
+    --soft-pink: #D88FA8;
+    --soft-tosca: #79C9BF;
+    --bg-soft: #FFF7FA;
+    --deep-tosca: #1B6B63;
+}
+
+/* Penerapan Warna Kustom */
+body.bg-gudang {
+    background-color: var(--bg-soft) !important;
+}
+
+.sidebar-gudang {
+    background-color: var(--deep-tosca) !important;
+}
+
+.text-deep-tosca-text {
+    color: var(--deep-tosca) !important;
+}
+
+.btn-soft-pink {
+    background-color: var(--soft-pink) !important;
+    color: white !important;
+}
+
+.btn-soft-pink:hover {
+    background-color: #c47c94 !important;
+}
+
+.btn-soft-tosca {
+    background-color: var(--soft-tosca) !important;
+    color: white !important;
+}
+
+.btn-soft-tosca:hover {
+    background-color: #65b2a8 !important;
+}
