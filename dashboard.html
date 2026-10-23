@@ -49,6 +49,15 @@
           <p class="text-subtle mb-0">Pantau data master dan informasi stok barang dari satu tempat.</p>
         </div>
 
+        <div class="d-flex gap-2 mt-3 no-print">
+          <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Cetak Laporan
+          </button>
+          <button class="btn btn-success btn-sm fw-semibold" onclick="exportToCSV()">
+            <i class="bi bi-file-earmark-excel me-1"></i> Export Data CSV
+          </button>
+        </div>
+
         <div class="row g-3 mb-4" id="statsRow">
           <div class="col-6 col-xl-3"><div class="stat-card"><div class="d-flex justify-content-between align-items-start"><div class="stat-label">Total Barang</div><div class="stat-icon icon-blue"><i class="bi bi-box-seam"></i></div></div><div class="stat-number" id="statBarang">—</div><div class="small text-secondary mt-1">Item terdaftar</div></div></div>
           <div class="col-6 col-xl-3"><div class="stat-card"><div class="d-flex justify-content-between align-items-start"><div class="stat-label">Kategori Produk</div><div class="stat-icon icon-violet"><i class="bi bi-tags"></i></div></div><div class="stat-number" id="statKategori">—</div><div class="small text-secondary mt-1">Kelompok produk</div></div></div>
