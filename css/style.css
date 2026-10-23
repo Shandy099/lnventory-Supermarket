@@ -443,3 +443,9 @@ body.bg-gudang {
 .btn-soft-tosca:hover {
     background-color: #65b2a8 !important;
 }
+
+@media print {
+  .no-print, .sidebar, .topbar { display: none !important; }
+  .main-area { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  body { background: white !important; }
+}
