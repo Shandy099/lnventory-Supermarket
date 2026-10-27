@@ -1,95 +1,197 @@
 
-const dataBarangMaster = {
-    "Beras Premium 5 kg": { stok: 18, min: 10 },
-    "Air Mineral 600 ml": { stok: 8, min: 15 },
-    "Mi Instan Goreng": { stok: 46, min: 20 },
-    "Sabun Cuci Piring": { stok: 12, min: 12 },
-    "Buku Tulis 38 Lembar": { stok: 75, min: 25 }
-};
+document.addEventListener("DOMContentLoaded", function () {
+  initializeData();
 
-// Fungsi memperbarui status label warna Merah/Hijau
-function updateStatusLabel(namaBarang) {
-    const item = dataBarangMaster[namaBarang];
-    const stokEl = document.getElementById(`stok-${namaBarang}`);
-    const badgeEl = document.getElementById(`badge-${namaBarang}`);
-    
-    if (stokEl && badgeEl) {
-        stokEl.innerText = item.stok;
-        if (item.stok <= item.min) {
-            badgeEl.className = "px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-600";
-            badgeEl.innerText = "Merah (Stok Menipis)";
-        } else {
-            badgeEl.className = "px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-600";
-            badgeEl.innerText = "Hijau (Aman)";
+  const form = document.getElementById("formBarangMasuk");
+  const tabelStok = document.getElementById("tabelStok");
+  const tabelHistori = document.getElementById("tabelHistori");
+  const btnFilter = document.getElementById("btnFilter");
+  const btnReset = document.getElementById("btnReset");
+
+  const KEY_HISTORI = "inventory_pos_barang_masuk";
+
+  function ambilHistori() {
+    try {
+      const data = JSON.parse(
+        localStorage.getItem(KEY_HISTORI) || "[]"
+      );
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function simpanHistori(data) {
+    localStorage.setItem(KEY_HISTORI, JSON.stringify(data));
+  }
+
+  function tampilkanStok() {
+    const barang = getData("barang");
+
+    tabelStok.innerHTML = barang.map(function (item) {
+      const stok = Number(item.stok) || 0;
+      const minimum = Number(item.minimum) || 0;
+
+      let status;
+      let kelas;
+
+      if (stok < minimum) {
+        status = "Merah (Stok Menipis)";
+        kelas = "bg-danger-subtle text-danger border border-danger-subtle";
+      } else if (stok === minimum) {
+        status = "Kuning (Batas)";
+        kelas = "bg-warning-subtle text-warning-emphasis border border-warning-subtle";
+      } else {
+        status = "Hijau (Aman)";
+        kelas = "bg-success-subtle text-success border border-success-subtle";
+      }
+
+      return `
+        <tr>
+          <td class="ps-3 fw-semibold">${escapeHtml(item.nama)}</td>
+          <td class="fw-bold">${stok}</td>
+          <td>${minimum}</td>
+          <td class="pe-3">
+            <span class="badge ${kelas}">${status}</span>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function tampilkanHistori() {
+    const histori = ambilHistori();
+
+    if (histori.length === 0) {
+      tabelHistori.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center text-secondary py-3">
+            Belum ada riwayat barang masuk baru.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tabelHistori.innerHTML = histori.slice().reverse().map(function (item) {
+      return `
+        <tr class="histori-row" data-tanggal="${escapeHtml(item.tanggal)}">
+          <td class="ps-3">${escapeHtml(item.tanggal)}</td>
+          <td>${escapeHtml(item.supplier)}</td>
+          <td class="fw-semibold">${escapeHtml(item.namaBarang)}</td>
+          <td class="pe-3 text-primary fw-bold">+${Number(item.qty)}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // Barang masuk menggunakan sumber stok utama.
+  if (form) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const supplier = document.getElementById("supplier").value;
+      const namaBarang = document.getElementById("barang").value;
+      const tanggal = document.getElementById("tanggalDatang").value;
+      const kuantitas = Number(
+        document.getElementById("kuantitas").value
+      );
+
+      if (!supplier || !namaBarang || !tanggal ||
+          !Number.isInteger(kuantitas) || kuantitas < 1) {
+        alert("Lengkapi semua data dan masukkan kuantitas minimal 1.");
+        return;
+      }
+
+      const barang = getData("barang");
+      const indeks = barang.findIndex(
+        item => item.nama === namaBarang
+      );
+
+      if (indeks === -1) {
+        alert("Barang tidak ditemukan pada Master Data.");
+        return;
+      }
+
+      const stokLama = Number(barang[indeks].stok) || 0;
+
+      // Siapkan data stok baru tanpa mengubah data asli dahulu.
+      const stokBaru = barang.map(function (item, i) {
+        if (i !== indeks) return item;
+
+        return {
+          ...item,
+          stok: stokLama + kuantitas
+        };
+      });
+
+      const historiLama = ambilHistori();
+      const historiBaru = [
+        ...historiLama,
+        {
+          tanggal,
+          supplier,
+          namaBarang,
+          qty: kuantitas
         }
-    }
-}
+      ];
 
-// Event saat halaman dimuat
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('formBarangMasuk');
-    const btnFilter = document.getElementById('btnFilter');
-    const btnReset = document.getElementById('btnReset');
+      // Simpan kedua data. Jika gagal, kembalikan riwayat semula.
+      try {
+        simpanHistori(historiBaru);
 
-    // 1. Submit Form Nota Barang Datang & Trigger Stok Otomatis
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+        try {
+          setData("barang", stokBaru);
+        } catch (error) {
+          simpanHistori(historiLama);
+          throw error;
+        }
+      } catch (error) {
+        alert("Gagal menyimpan data. Silakan coba kembali.");
+        return;
+      }
 
-            const supplier = document.getElementById('supplier').value;
-            const barang = document.getElementById('barang').value;
-            const tanggal = document.getElementById('tanggalDatang').value;
-            const kuantitas = parseInt(document.getElementById('kuantitas').value);
+      tampilkanStok();
+      tampilkanHistori();
+      form.reset();
 
-            if (dataBarangMaster[barang]) {
-                dataBarangMaster[barang].stok += kuantitas;
-                updateStatusLabel(barang);
-            }
+      alert(
+        `Stok ${namaBarang} berhasil ditambah ${kuantitas} unit.`
+      );
+    });
+  }
 
-            const tabelHistori = document.getElementById('tabelHistori');
-            if (tabelHistori) {
-                const row = document.createElement('tr');
-                row.className = "border-b histori-row";
-                row.setAttribute('data-tanggal', tanggal);
-                row.innerHTML = `
-                    <td class="p-3">${tanggal}</td>
-                    <td class="p-3">${supplier}</td>
-                    <td class="p-3">${barang}</td>
-                    <td class="p-3 text-blue-600 font-semibold">+${kuantitas}</td>
-                `;
-                tabelHistori.appendChild(row);
-            }
+  // Filter riwayat berdasarkan rentang tanggal.
+  if (btnFilter) {
+    btnFilter.addEventListener("click", function () {
+      const dari = document.getElementById("filterDari").value;
+      const sampai = document.getElementById("filterSampai").value;
 
-            this.reset();
-            alert("Nota berhasil disimpan dan stok gudang otomatis bertambah!");
-        });
-    }
+      document.querySelectorAll(".histori-row").forEach(function (row) {
+        const tanggal = row.dataset.tanggal;
 
-    // 2. Filter Rentang Tanggal Histori
-    if (btnFilter) {
-        btnFilter.addEventListener('click', function() {
-            const dari = document.getElementById('filterDari').value;
-            const sampai = document.getElementById('filterSampai').value;
-            const rows = document.querySelectorAll('.histori-row');
+        const diLuarRentang =
+          (dari && tanggal < dari) ||
+          (sampai && tanggal > sampai);
 
-            rows.forEach(row => {
-                const tglRow = row.getAttribute('data-tanggal');
-                if ((dari && tglRow < dari) || (sampai && tglRow > sampai)) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = '';
-                }
-            });
-        });
-    }
+        row.style.display = diLuarRentang ? "none" : "";
+      });
+    });
+  }
 
-    // 3. Reset Filter
-    if (btnReset) {
-        btnReset.addEventListener('click', function() {
-            document.getElementById('filterDari').value = '';
-            document.getElementById('filterSampai').value = '';
-            const rows = document.querySelectorAll('.histori-row');
-            rows.forEach(row => row.style.display = '');
-        });
-    }
+  // Reset filter tanpa menghapus riwayat.
+  if (btnReset) {
+    btnReset.addEventListener("click", function () {
+      document.getElementById("filterDari").value = "";
+      document.getElementById("filterSampai").value = "";
+
+      document.querySelectorAll(".histori-row").forEach(function (row) {
+        row.style.display = "";
+      });
+    });
+  }
+
+  // Tampilkan data terbaru ketika halaman dibuka.
+  tampilkanStok();
+  tampilkanHistori();
 });
